@@ -1,41 +1,68 @@
-import XCTest
-@testable import AsyncPoller
+import AsyncPoller
+import Testing
 
-// This is not a test really. Just a playground.
+@Suite("Async Poller Tests")
+struct AsyncPollerTests {
 
-final class PollerTests: XCTestCase {
-    func testExample() async throws {
-        let configuration = AsyncPoller<Int>.Configuration(
-            pollingInterval: 0.5,
-            timeoutInterval: 20.0
+    @Test("Happy Path")
+    func happyPath() async throws {
+        let configuration = AsyncPoller<String>.Configuration(
+            pollingInterval: 0.0001,
+            timeoutInterval: 1
         )
-
-        let condition: (Int) -> Bool = { $0 == 10 }
-
-        let pollingJob : @Sendable () async -> Int = {
-            let randomNumber = Int.random(in: 1...200)
-            try? await Task.sleep(nanoseconds: 1_000_000)
-            print("Generated random number: \(randomNumber)")
-            return randomNumber
+        let condition: (String) -> Bool = { $0 == "success" }
+        let pollingJob: @Sendable () async -> String = {
+            "success"
         }
 
-        let poller = AsyncPoller<Int>(configuration: configuration, completionCondition: condition, pollingJob: pollingJob)
+        let poller = AsyncPoller(configuration: configuration, completionCondition: condition, pollingJob: pollingJob)
 
-        let pollingExpectation = expectation(description: "Polling result")
-        let task = Task {
-            defer {
-                pollingExpectation.fulfill()
-            }
+        try await confirmation { confirmed in
             let result = try await poller.start()
-            XCTAssertEqual(result, 10)
+            #expect(result == "success")
+            confirmed()
         }
-        print("Will sleep before cancelling the task")
-        try await Task.sleep(nanoseconds: 10 * 1_000_000_000)
-        print("Will cancel the task")
-        task.cancel()
+    }
 
-        await fulfillment(of: [pollingExpectation])
-        XCTAssertTrue(task.isCancelled)
+    @Test("Polling timeout")
+    func timeout() async throws {
+        let configuration = AsyncPoller<String>.Configuration(
+            pollingInterval: 0.000001,
+            timeoutInterval: 0.0001
+        )
+        let condition: (String) -> Bool = { $0 == "success" }
+        let pollingJob: @Sendable () async -> String = {
+            "not success"
+        }
+
+        let poller = AsyncPoller(configuration: configuration, completionCondition: condition, pollingJob: pollingJob)
+
+        await #expect(throws: AsyncPoller<String>.PollingError.timeout) {
+            let _ = try await poller.start()
+        }
+    }
+
+    @Test("Already Polling")
+    func alreadyPolling() async throws {
+        await withKnownIssue(isIntermittent: true) {
+            let configuration = AsyncPoller<String>.Configuration(
+                pollingInterval: 0.01,
+                timeoutInterval: 1
+            )
+            let condition: (String) -> Bool = { $0 == "success" }
+            let pollingJob: @Sendable () async -> String = {
+                "not success"
+            }
+
+            let poller = AsyncPoller(configuration: configuration, completionCondition: condition, pollingJob: pollingJob)
+
+            Task {
+                try await poller.start()
+            }
+
+            await #expect(throws: AsyncPoller<String>.PollingError.alreadyPolling) {
+                try await poller.start()
+            }
+        }
     }
 }
-
