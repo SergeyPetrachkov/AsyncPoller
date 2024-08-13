@@ -37,7 +37,7 @@ Create a new instance of AsyncPoller by providing a configuration, a completion 
 
 ```Swift
 let poller = AsyncPoller<String>(
-    configuration: .init(pollingInterval: 5, timeoutInterval: 60),
+    configuration: SimplePollingConfiguration(pollingInterval: 5, timeoutInterval: 60),
     completionCondition: { result in
         return result == "success"
     },
@@ -63,16 +63,42 @@ Task {
 ```
 
 ### Configuration
-`AsyncPoller` is configured using the `Configuration` struct, which specifies the polling interval and the timeout interval.
+`AsyncPoller` is configured using the `PollingConfigurating` protocol, which specifies the polling interval and the timeout interval.
 
+The default is this:
 ```Swift
-public struct Configuration {
+public struct SimplePollingConfiguration: PollingConfigurating {
     public let pollingInterval: TimeInterval
     public let timeoutInterval: TimeInterval
 
     public init(pollingInterval: TimeInterval, timeoutInterval: TimeInterval) {
         self.pollingInterval = pollingInterval
         self.timeoutInterval = timeoutInterval
+    }
+
+    public func pollingInterval(iteration: Int) -> TimeInterval {
+        pollingInterval
+    }
+}
+```
+
+An example of a Polling configuration that uses Fibonacci numbers to determine the polling interval:
+```Swift
+struct FibonacciPollingConfiguration: PollingConfigurating {
+    let timeoutInterval: TimeInterval
+    func pollingInterval(iteration: Int) -> TimeInterval {
+        guard iteration > 1 else {
+            return TimeInterval(iteration)
+        }
+
+        var dp = [Int](repeating: 0, count: iteration + 1)
+        dp[1] = 1
+
+        for i in 2...iteration {
+            dp[i] = dp[i - 1] + dp[i - 2]
+        }
+
+        return TimeInterval(dp[iteration])
     }
 }
 ```
