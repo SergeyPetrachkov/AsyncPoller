@@ -15,7 +15,7 @@ let package = Package(
         .target(
             name: "AsyncPoller",
 			swiftSettings: [
-				.swiftLanguageVersion(.v6)
+				.swiftLanguageMode(.v6)
 			]
 		),
         .testTarget(
