@@ -9,14 +9,13 @@ on:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: macos-15
 
     steps:
       - uses: actions/checkout@v4
-      - uses: SwiftyLab/setup-swift@latest
-        with:
-          development: true
+
       - name: Build
         run: swift build
+
       - name: Run tests
         run: swift test
