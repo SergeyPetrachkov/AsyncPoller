@@ -28,7 +28,7 @@ public enum PollingError: Error {
     case alreadyPolling
 }
 
-public final actor AsyncPoller<T: Sendable> {
+public actor AsyncPoller<T: Sendable> {
 
     // MARK: - Injectables
     /// The configuration of the poller.
