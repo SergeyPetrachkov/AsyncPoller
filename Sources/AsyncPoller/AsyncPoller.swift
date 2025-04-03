@@ -74,7 +74,7 @@ public actor AsyncPoller<T: Sendable> {
                 throw PollingError.timeout
             }
 
-            try await Task.sleep(nanoseconds: UInt64(configuration.pollingInterval(iteration: iteration) * 1_000_000_000))
+            try await Task.sleep(nanoseconds: UInt64(nextInterval * 1_000_000_000))
         }
         throw CancellationError()
     }
