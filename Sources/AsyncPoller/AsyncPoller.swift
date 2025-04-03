@@ -68,7 +68,9 @@ public actor AsyncPoller<T: Sendable> {
                 return result
             }
 
-            if let startTime = startTime, Date.now.timeIntervalSince(startTime) > configuration.timeoutInterval {
+            let nextInterval = configuration.pollingInterval(iteration: iteration)
+
+            if let startTime = startTime, Date.now.timeIntervalSince(startTime) + nextInterval > configuration.timeoutInterval {
                 throw PollingError.timeout
             }
 

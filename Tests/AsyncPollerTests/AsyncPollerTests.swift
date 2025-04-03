@@ -27,8 +27,8 @@ struct AsyncPollerTests {
     @Test("Polling timeout")
     func timeout() async throws {
         let configuration = SimplePollingConfiguration(
-            pollingInterval: 0.000001,
-            timeoutInterval: 0.0001
+            pollingInterval: 1.5,
+            timeoutInterval: 2
         )
         let condition: (String) -> Bool = { $0 == "success" }
         let pollingJob: @Sendable () async -> String = {
@@ -40,6 +40,8 @@ struct AsyncPollerTests {
         await #expect(throws: PollingError.timeout) {
             let _ = try await poller.start()
         }
+
+        await #expect(poller.iteration == 2)
     }
 
     @Test("Already Polling")
